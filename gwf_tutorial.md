@@ -42,7 +42,7 @@ To get you started with the utilities of using gwf, I will give a tiny example s
 I will be following the tutorial found [here](https://gwf.app/guide/tutorial/#a-minimal-workflow): a minimal workflow to run gwf.
 
 Let's say we wanna submit a job to the cluster, and the simple task we wanna submit is to produce a text file with 
-something written in it, such as "Hello world".
+something written in it, such as "hello world".
 
 To get started we must define a workflow file containing a workflow to which we can add targets. Unless gwf is told otherwise it assumes that the workflow file is called *workflow.py* and that the workflow is called gwf:
 
@@ -98,6 +98,25 @@ Since we are running this script on the cluster we need to set a backend, to do 
 ```{bash}
 gwf config set backend sge
 ```
+
+Now to run the workflow, we just need to type:
+
+```{bash}
+gwf run
+```
+By default gwf assumes that the the workflow file is called workflow.py and that the workflow is called gwf.
+But if you wanna instead call your workflow *something_else.py*, then you can just run with the flag *-f* as:
+
+```{bash}
+gwf -f something_else.py run
+```
+
+To check the status of your workflow.py you can type the following:
+
+```{bash}
+gwf status
+```
+
 
 
 if you get any problems with utf8 then type the following on terminal
