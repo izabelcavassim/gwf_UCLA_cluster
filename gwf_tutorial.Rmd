@@ -1,0 +1,60 @@
+---
+title: "Using_gwf_smcpp"
+author: "Maria Izabel Cavassim Alves"
+date: "3/4/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## GWF
+
+gwf (https://gwf.app/) is a flexible, pragmatic workflow tool for building and running large, scientific workflows. It runs on Python 3.5+ and is developed at the Bioinformatics Research Centre (BiRC), Aarhus University.
+
+## Installation of GWF
+```{bash}
+conda config --add channels gwforg
+conda install gwf
+```
+
+## Running GWF within Hoffman 
+Because the cluster at UCLA uses the SGE grid engine but the tool was developed to run in a slurm engine, we need to make some modifications in the config files. 
+
+Go to the dirctory that the gwf folder is placed, in mine is the following:
+```{bash}
+cd /u/home/m/mica20/.conda/pkgs/gwf-1.7.1-py_0/site-packages/gwf/backends/
+```
+
+And now in the file *sge.py* replace it with the one added [here](bla) in this repository.
+
+So basically now we can run gwf with Hoffman. 
+
+To get you started with the utilities of using gwf, I will give a tiny example so to see if it works.
+
+I will be following the tutorial found [here]().
+
+Let's say we wanna submit a job to the cluster, and the simple task we wanna submit is to produce a text file with 
+something written in it, such as "Hello world".
+
+To get started we must define a workflow file containing a workflow to which we can add targets. Unless gwf is told otherwise it assumes that the workflow file is called *workflow.py* and that the workflow is called gwf:
+
+so create an empty file called workflow.py in your current directory by typing:
+
+```{bash}
+touch workflow.py
+```
+
+And then inside of this file paste the following command:
+
+```{python}
+from gwf import Workflow
+
+gwf = Workflow()
+
+gwf.target('MyTarget', inputs=[], outputs=[]) << """
+echo hello world
+"""
+```
+
