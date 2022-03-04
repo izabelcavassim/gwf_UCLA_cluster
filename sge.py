@@ -1,16 +1,94 @@
 import logging
 import re
+import subprocess
+from distutils.spawn import find_executable
 from xml.etree import ElementTree
 
-from ..utils import ensure_trailing_newline, retry
-from .base import PbsLikeBackendBase, Status
-from .exceptions import BackendError
-from .utils import call
+from . import Backend, Status
+from ..utils import PersistableDict, ensure_trailing_newline
+from .exceptions import BackendError, DependencyError, TargetError
+from .logmanager import FileLogManager
 
 logger = logging.getLogger(__name__)
 
 
-class SGEBackend(PbsLikeBackendBase):
+SGE_OPTIONS = {
+    "cores": "-pe shared ",
+    "memory": "-l h_data=",
+    "walltime": "-l h_rt=",
+    "queue": "-q ",
+    "account": "-P ",
+    "highp": "-l ",
+    "array": "-t "
+}
+
+
+def _find_exe(name):
+    exe = find_executable(name)
+    if exe is None:
+        msg = (
+            'Could not find executable "{}". This backend requires Sun Grid '
+            "Engine (SGE) to be installed on this host."
+        )
+        raise BackendError(msg.format(name))
+    return exe
+
+
+def _call_generic(executable_name, *args, input=None):
+    executable_path = _find_exe(executable_name)
+    proc = subprocess.Popen(
+        [executable_path] + list(args),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        stdin=subprocess.PIPE,
+        universal_newlines=True,
+    )
+    stdout, stderr = proc.communicate(input)
+
+    if proc.returncode != 0:
+        raise BackendError(stderr)
+    return stdout
+
+
+def _call_qstat():
+    return _call_generic("qstat", "-f", "-xml")
+
+
+def _call_qdel(job_id):
+    # The --verbose flag here is necessary, otherwise we're not able to tell
+    # whether the command failed. See the comment in _call_generic() if you
+    # want to know more.
+    return _call_generic("qdel", job_id)
+
+
+def _call_qsub(script, dependencies):
+    args = ["-terse"]
+    if dependencies:
+        args.append("-hold_jid")
+        args.append(",".join(dependencies))
+    return _call_generic("qsub", *args, input=script)
+
+
+def _parse_qstat_output(stdout):
+    job_states = {}
+    root = ElementTree.fromstring(stdout)
+    for job in root.iter("job_list"):
+        job_id = job.find("JB_job_number").text
+        state = job.find("state").text
+
+        # Guessing job state based on
+        # https://gist.github.com/cmaureir/4fa2d34bc9a1bd194af1
+        if "d" in state or "E" in state:
+            job_state = Status.UNKNOWN
+        elif "r" in state or "t" in state or "s" in state:
+            job_state = Status.RUNNING
+        else:
+            job_state = Status.SUBMITTED
+        job_states[job_id] = job_state
+    return job_states
+
+
+class SGEBackend(Backend):
     """Backend for Sun Grid Engine (SGE).
 
     To use this backend you must activate the `sge` backend. The backend
@@ -38,60 +116,67 @@ class SGEBackend(PbsLikeBackendBase):
       project.
     """
 
+    log_manager = FileLogManager()
+
     option_defaults = {
-        "cores": 2,
+        "cores": 1,
         "memory": "1g",
         "walltime": "01:00:00",
         "queue": None,
         "account": None,
+	"highp": None, 
+	"array": None
     }
 
-    option_flags = {
-        "cores": "-pe shared ", #ignoring cores
-        "memory": "-l h_data=",
-        "walltime": "-l h_rt=",
-        "queue": "-q ",
-        "account": "-P ",
-    }
+    def __init__(self):
+        self._status = _parse_qstat_output(_call_qstat())
+        self._tracked = PersistableDict(path=".gwf/sge-backend-tracked.json")
 
-    @retry(on_exc=BackendError)
-    def call_queue_command(self,):
-        return call("qstat", "-f", "-xml")
+    def status(self, target):
+        try:
+            return self._get_status(target)
+        except KeyError:
+            return Status.UNKNOWN
 
-    @retry(on_exc=BackendError)
-    def call_cancel_command(self, job_id):
-        # The --verbose flag here is necessary, otherwise we're not able to tell
-        # whether the command failed. See the comment in call() if you
-        # want to know more.
-        return call("qdel", job_id)
+    def submit(self, target, dependencies):
+        script = self._compile_script(target)
+        dependency_ids = self._collect_dependency_ids(dependencies)
+        stdout = _call_qsub(script, dependency_ids)
+        job_id = stdout.strip()
+        self._add_job(target, job_id)
 
-    @retry(on_exc=BackendError)
-    def call_submit_command(self, script, dependencies):
-        args = ["-terse"]
-        if dependencies:
-            args.append("-hold_jid")
-            args.append(",".join(dependencies))
-        return call("qsub", *args, input=script)
+    def cancel(self, target):
+        try:
+            job_id = self.get_job_id(target)
+            _call_qdel(job_id)
+        except (KeyError, BackendError):
+            raise TargetError(target.name)
+        else:
+            self.forget_job(target)
 
-    def parse_queue_output(self, stdout):
-        job_states = {}
-        root = ElementTree.fromstring(stdout)
-        for job in root.iter("job_list"):
-            job_id = job.find("JB_job_number").text
-            state = job.find("state").text
+    def close(self):
+        self._tracked.persist()
 
-            # Guessing job state based on
-            # https://gist.github.com/cmaureir/4fa2d34bc9a1bd194af1
-            if "d" in state or "E" in state:
-                job_state = Status.UNKNOWN
-            elif "r" in state or "t" in state or "s" in state:
-                job_state = Status.RUNNING
-            else:
-                job_state = Status.SUBMITTED
-            job_states[job_id] = job_state
-        return job_states
+    def forget_job(self, target):
+        """Force the backend to forget the job associated with `target`."""
+        job_id = self.get_job_id(target)
+        del self._status[job_id]
+        del self._tracked[target.name]
 
-    def compile_script(self, target):
+    def get_job_id(self, target):
+        """Get the SGE job id for a target.
+
+        :raises KeyError: if the target is not tracked by the backend.
+        """
+        name = self._tracked[target.name]
+        
+        if ("." and ":" and "-" in name):
+            ind = name.find(".")
+            name = name[:ind]
+        
+        return name
+
+    def _compile_script(self, target):
         option_str = "#$ {0}{1}"
 
         out = []
@@ -102,8 +187,7 @@ class SGEBackend(PbsLikeBackendBase):
         out.append("#$ -V")
         #out.append("#$ -w v")
         out.append("#$ -cwd")
-        
-        print(out)
+
         for option_name, option_value in target.options.items():
             # SGE wants per-core memory, but gwf wants total memory.
             if option_name == "memory":
@@ -111,7 +195,7 @@ class SGEBackend(PbsLikeBackendBase):
                 unit = re.sub(r"[0-9]+", "", option_value)
                 cores = target.options["cores"]
                 option_value = "{}{}".format(number // cores, unit)
-            out.append(option_str.format(self.option_flags[option_name], option_value))
+            out.append(option_str.format(SGE_OPTIONS[option_name], option_value))
 
         out.append(option_str.format("-o ", self.log_manager.stdout_path(target)))
         out.append(option_str.format("-e ", self.log_manager.stderr_path(target)))
@@ -123,5 +207,25 @@ class SGEBackend(PbsLikeBackendBase):
         out.append("set -e")
         out.append("")
         out.append(ensure_trailing_newline(target.spec))
-        print("\n".join(out))
         return "\n".join(out)
+
+    def _add_job(self, target, job_id, initial_status=Status.SUBMITTED):
+        self._set_job_id(target, job_id)
+        self._set_status(target, initial_status)
+
+    def _set_job_id(self, target, job_id):
+        self._tracked[target.name] = job_id
+
+    def _get_status(self, target):
+        job_id = self.get_job_id(target)
+        return self._status[job_id]
+
+    def _set_status(self, target, status):
+        job_id = self.get_job_id(target)
+        self._status[job_id] = status
+
+    def _collect_dependency_ids(self, dependencies):
+        try:
+            return [self._tracked[dep.name] for dep in dependencies]
+        except KeyError as exc:
+            raise DependencyError(exc.args[0])
