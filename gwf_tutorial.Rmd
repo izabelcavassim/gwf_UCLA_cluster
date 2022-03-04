@@ -16,15 +16,16 @@ gwf (https://gwf.app/) is a flexible, pragmatic workflow tool for building and r
 ## Installation of GWF
 ```{bash}
 conda config --add channels gwforg
-conda install gwf
+conda create -n myproject python=3.5 gwf
+conda activate myproject
 ```
 
 ## Running GWF within Hoffman 
 Because the cluster at UCLA uses the SGE grid engine but the tool was developed to run in a slurm engine, we need to make some modifications in the config files. 
 
-Go to the dirctory that the gwf folder is placed, in mine is the following:
+Go to the directory that the gwf folder is placed, in mine is placed in the following directory
 ```{bash}
-cd /u/home/m/mica20/.conda/pkgs/gwf-1.7.1-py_0/site-packages/gwf/backends/
+/u/home/m/mica20/miniconda3/envs/myproject/lib/python3.5/site-packages/gwf/backends
 ```
 
 And now in the file *sge.py* replace it with the one added [here](bla) in this repository.
@@ -58,3 +59,43 @@ echo hello world
 """
 ```
 
+In the example above we define a workflow and then add a target called MyTarget. A target is a single unit of computation that uses zero or more files (inputs) and produces zero or more files (outputs).
+
+The target defined above does not use any files and doesn’t produce any files either. However, it does run a single command (echo hello world), but the output of the command is thrown away. Let’s fix that! Change the target definition to this:
+
+```{python}
+gwf.target('MyTarget', inputs=[], outputs=['greeting.txt']) << """
+echo hello world
+"""
+```
+
+This tells gwf that the target will create a file called greeting.txt when it is run. However, the target does not actually create the file yet. Let’s fix that too:
+
+```{python}
+gwf.target('MyTarget', inputs=[], outputs=['greeting.txt']) << """
+echo hello world > greeting.txt
+"""
+```
+There you go! We have now declared a workflow with one target and that target creates the file greeting.txt with the line hello world in it. Now let’s try to run our workflow…
+
+```{python}
+from gwf import Workflow
+
+gwf = Workflow()
+
+gwf.target('MyTarget', inputs=[], outputs=['greeting.txt']) << """
+echo hello world > greeting.txt
+"""
+```
+
+Since we are running this script on the cluster we need to set a backend, to do so we type in the terminal
+
+```{bash}
+gwf config set backend sge
+```
+
+
+if you get any problems with utf8 then type the following on terminal
+```{bash}
+export LC_ALL=aa_DJ.utf8
+```
