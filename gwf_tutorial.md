@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Installation of GWF
 The easiest way to install gwf is through conda, if you do not have conda installed yet in the cluster, please look at the document [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) to find the instructions on how to install it. 
 
-Once you have conda set in, then you can simple create a new project-specific environment (in this case we are naming it "myproject") and have *gwf* installed inside of the new environment:
+Once you have conda set in, then you can simply create a new project-specific environment (in this case we are naming it "myproject") and have *gwf* installed inside of the new environment:
 
 ```{bash}
 conda config --add channels gwforg
@@ -215,6 +215,68 @@ And then I see:
 Mytarget    completed     100.00% [0/0/0/1]
 ```
 
+## Defining Targets with Dependencies
+
+Targets in gwf represent isolated units of work. However, we can declare dependencies between targets to construct complex workflows. A target B that depends on a target A will only run when A has been run successfully (that is, if all of the output files of A exist).
+
+In gwf, dependencies are declared through file dependencies. This is best understood through an example (workflow_dependencies.py):
+
+```{python}
+from gwf import Workflow
+
+gwf = Workflow()
+
+def first_step():
+	inputs = []
+	outputs = ['greetings.txt'] # changed
+	options = {
+	'memory':'1g',
+	'cores':1,
+	'walltime':'00:00:10',
+	}
+	# Here we need to activate our conda environment (this will differ from user to user!!!!!!)
+	spec = f'''
+        source "/u/home/m/mica20/miniconda3/etc/profile.d/conda.sh"
+        conda activate myproject2
+
+	echo hello world > greetings.txt
+	'''
+	print(spec)
+	return inputs, outputs, options, spec
+	
+def second_step():
+	inputs = ['greetings.txt']
+	outputs = ['farewell.txt'] # changed
+	options = {
+	'memory':'1g',
+	'cores':1,
+	'walltime':'00:00:10',
+	}
+	# Here we need to activate our conda environment (this will differ from user to user!!!!!!)
+	spec = f'''
+        source "/u/home/m/mica20/miniconda3/etc/profile.d/conda.sh"
+        conda activate myproject2
+
+	echo goodbye > farewell.txt
+	'''
+	print(spec)
+	return inputs, outputs, options, spec
+
+## Submitting your first step
+gwf.target_from_template("Mytarget1", first_step())
+gwf.target_from_template("Mytarget2", second_step())
+```
+
+Let's now run this specific workflow:
+
+```{bash}
+gwf -f workflow_dependencies.py run
+```
+What do you see when you run:
+
+```{bash}
+gwf -f workflow_dependencies.py status
+```
 
 if you get any problems with utf8 then type the following on terminal
 ```{bash}
