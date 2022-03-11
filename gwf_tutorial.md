@@ -59,9 +59,26 @@ from gwf import Workflow
 
 gwf = Workflow()
 
-gwf.target('MyTarget', inputs=[], outputs=[]) << """
-echo hello world
-"""
+def first_step():
+	inputs = []
+	outputs = []
+	options = {
+	'memory':'1g',
+	'cores':1,
+	'walltime':'00:00:10',
+	}
+	# Here we need to activate our conda environment (this will differ from user to user!!!!!!)
+	spec = f'''
+        source "/u/home/m/mica20/miniconda3/etc/profile.d/conda.sh"
+        conda activate myproject2
+
+	echo hello world > greetings.txt
+	'''
+	print(spec)
+	return inputs, outputs, options, spec
+
+## Submitting your first step
+gwf.target_from_template("Mytarget", first_step())
 ```
 
 In the example above we define a workflow and then add a target called *MyTarget*. A target is a single unit of computation that uses zero or more files (inputs) and produces zero or more files (outputs).

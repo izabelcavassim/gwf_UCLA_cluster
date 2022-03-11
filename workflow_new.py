@@ -1,17 +1,13 @@
-
-# Workflow for the pyrho analyses of the wolves data
+# Author: Maria Izabel Cavassim Alves
+# Date: March 11, 2022 
+# Minimal workflow, introducing GWF
 
 from gwf import Workflow
-import glob
-import os
-import os.path
-import itertools
-#import pandas as pd
 
 gwf = Workflow()
 
 
-def test():
+def first_step():
 	inputs = []
 	outputs = ['greetings.txt']
 	options = {
@@ -19,6 +15,7 @@ def test():
 	'cores':1,
 	'walltime':'00:00:10',
 	}
+	# Here we need to activate our conda environment
 	spec = f'''
         source "/u/home/m/mica20/miniconda3/etc/profile.d/conda.sh"
         conda activate myproject2
@@ -30,4 +27,4 @@ def test():
 
 
 ## Estimating stats for each vcf file
-gwf.target_from_template("Mytarget", test())
+gwf.target_from_template("Mytarget", first_step())
