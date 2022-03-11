@@ -289,6 +289,67 @@ gwf -f workflow_dependencies.py run
 
 ## Submitting multiple jobs by looping through a function
 
+OK, now that we already have a good idea of how gwf works, let's try a bit more complex pipelines.
+Let's say we need to compute a specific measure for each chromosome of a given genome.
+To make it simple, I will keep using the same structure as above and build from there.
+
+```{python}
+from gwf import Workflow
+
+gwf = Workflow()
+
+def analysis(chrom):
+	inputs = []
+	outputs = [f'results_{chrom}.txt'] # changed
+	options = {
+	'memory':'1g',
+	'cores':1,
+	'walltime':'00:00:10',
+	}
+	# Here we need to activate our conda environment (this will differ from user to user!!!!!!)
+	spec = f'''
+        source "/u/home/m/mica20/miniconda3/etc/profile.d/conda.sh"
+        conda activate myproject2
+
+	echo analysing chromosome {chrom} > results_{chrom}.txt
+	'''
+	print(spec)
+	return inputs, outputs, options, spec
+	
+chrms = range(1, 5)
+# Submitting jobs per chromosome
+for c in chrms:
+	gwf.target_from_template(f"Analysis_chrm{c}", analysis(chrom=c))
+```
+
+What do you see if you run:
+```{bash}
+gwf -f workflow_chromosomes.py status
+```
+I see:
+```{bash}
+Analysis_chrm1    shouldrun       0.00% [1/0/0/0]
+Analysis_chrm2    shouldrun       0.00% [1/0/0/0]
+Analysis_chrm3    shouldrun       0.00% [1/0/0/0]
+Analysis_chrm4    shouldrun       0.00% [1/0/0/0]
+```
+Now try to run these analyses, what results do you get?
+
+```{bash}
+gwf -f workflow_chromosomes.py run
+```
+
+## Troubleshooting
+
+Sometimes your job won't run, and it is useful to investigate why it was unable to run.
+In order to troubleshoot you jobs under the gwf workflow, you can look at the logs of each target.
+
+To do so you can type:
+
+```{bash}
+gwf -f workflow_chromosomes.py logs -e Analysis_chrm1 [name of the Target]
+```
+ 
 
 if you get any problems with utf8 then type the following on terminal
 ```{bash}
