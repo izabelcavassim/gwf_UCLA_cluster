@@ -219,7 +219,7 @@ Mytarget    completed     100.00% [0/0/0/1]
 
 Targets in gwf represent isolated units of work. However, we can declare dependencies between targets to construct complex workflows. A target B that depends on a target A will only run when A has been run successfully (that is, if all of the output files of A exist).
 
-In gwf, dependencies are declared through file dependencies. This is best understood through an example (workflow_dependencies.py):
+In gwf, dependencies are declared through file dependencies. This is best understood through an example ([workflow_dependencies.py](https://github.com/izabelcavassim/gwf_UCLA_cluster/blob/master/workflow_dependencies.py)):
 
 ```{python}
 from gwf import Workflow
@@ -292,6 +292,7 @@ gwf -f workflow_dependencies.py run
 OK, now that we already have a good idea of how gwf works, let's try a bit more complex pipelines.
 Let's say we need to compute a specific measure for each chromosome of a given genome.
 To make it simple, I will keep using the same structure as above and build from there.
+And I will save this workflow as [workflow_chromosomes.py](https://github.com/izabelcavassim/gwf_UCLA_cluster/blob/master/workflow_chromosomes.py)
 
 ```{python}
 from gwf import Workflow
@@ -349,7 +350,9 @@ To do so you can type:
 ```{bash}
 gwf -f workflow_chromosomes.py logs -e Analysis_chrm1 [name of the Target]
 ```
- 
+
+As you can imagine by now, the sky is the limit in terms of what jobs one can submit with this tool. 
+I hope you use it wisely :)
 
 if you get any problems with utf8 then type the following on terminal
 ```{bash}
