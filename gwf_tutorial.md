@@ -269,14 +269,26 @@ gwf.target_from_template("Mytarget2", second_step())
 
 Let's now run this specific workflow:
 
-```{bash}
-gwf -f workflow_dependencies.py run
-```
 What do you see when you run:
 
 ```{bash}
 gwf -f workflow_dependencies.py status
 ```
+
+I see:
+```{bash}
+Mytarget1    completed     100.00% [0/0/0/1]
+Mytarget2    shouldrun      50.00% [1/0/0/1]
+```
+Mytarget2 is 50% complete because we have already produced the file 'greetings.txt'. 
+Now try to run your job:
+
+```{bash}
+gwf -f workflow_dependencies.py run
+```
+
+## Submitting multiple jobs by looping through a function
+
 
 if you get any problems with utf8 then type the following on terminal
 ```{bash}
