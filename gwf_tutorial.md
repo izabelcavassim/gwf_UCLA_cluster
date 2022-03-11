@@ -20,8 +20,13 @@ Once you have conda set in, then you can simple create a new project-specific en
 
 ```{bash}
 conda config --add channels gwforg
-conda create -n myproject python=3.5 gwf
-conda activate myproject
+conda create -n myproject2 python=3.9 gwf
+conda activate myproject2
+```
+
+To see if you successfully installed gwf try running it:
+```{bash}
+gwf
 ```
 
 ## Running GWF within Hoffman 
@@ -30,7 +35,7 @@ Because the cluster at UCLA uses the SGE grid engine but the tool was developed 
 Go to the directory that the gwf folder is placed, in mine is placed in the following directory:
 
 ```{bash}
-/u/home/m/mica20/miniconda3/envs/myproject/lib/python3.5/site-packages/gwf/backends
+/u/home/m/mica20/miniconda3/envs/myproject2/lib/python3.9/site-packages/gwf/backends
 ```
 
 And now in the file *sge.py* replace it with the one added [here](https://github.com/izabelcavassim/gwf_UCLA_cluster/blob/master/sge.py) in this repository.
@@ -39,10 +44,9 @@ So basically now we can run gwf with the settings of the Hoffman cluster.
 
 To get you started with the utilities of using gwf, I will give a tiny example so to see if it works.
 
-I will be following the tutorial found [here](https://gwf.app/guide/tutorial/#a-minimal-workflow): a minimal workflow to run gwf.
+I will be somewhat following the tutorial found [here](https://gwf.app/guide/tutorial/#a-minimal-workflow): a minimal workflow to run gwf.
 
-Let's say we wanna submit a job to the cluster, and the simple task we wanna submit is to produce a text file with 
-something written in it, such as "hello world".
+Let's say we wanna submit a job to the cluster, and the simple task we wanna submit as a job is the creation of a text file with something written in it, such as "hello world".
 
 To get started we must define a workflow file containing a workflow to which we can add targets. Unless gwf is told otherwise it assumes that the workflow file is called *workflow.py* and that the workflow is called gwf:
 
@@ -52,7 +56,7 @@ so create an empty file called workflow.py in your current directory by typing:
 touch workflow.py
 ```
 
-And then inside of this file paste (maybe through emacs) the following command:
+And then inside of this file paste (maybe through emacs or any text editor) the following set of commands:
 
 ```{python}
 from gwf import Workflow
@@ -72,7 +76,7 @@ def first_step():
         source "/u/home/m/mica20/miniconda3/etc/profile.d/conda.sh"
         conda activate myproject2
 
-	echo hello world > greetings.txt
+	echo hello world
 	'''
 	print(spec)
 	return inputs, outputs, options, spec
@@ -83,20 +87,69 @@ gwf.target_from_template("Mytarget", first_step())
 
 In the example above we define a workflow and then add a target called *MyTarget*. A target is a single unit of computation that uses zero or more files (inputs) and produces zero or more files (outputs).
 
+We have also set some properties about the job: 
+- the amount of *memory* we wanna set for this specific job
+- the number of cores
+- the walltime
+
+These specifications will of course change with demand, so you need to bare in mind that.
+
 The target defined above does not use any files and doesn’t produce any files either. However, it does run a single command (**echo hello world**), but the output of the command is thrown away. Let’s fix that! Change the target definition to this:
 
 ```{python}
-gwf.target('MyTarget', inputs=[], outputs=['greeting.txt']) << """
-echo hello world
-"""
+from gwf import Workflow
+
+gwf = Workflow()
+
+def first_step():
+	inputs = []
+	outputs = ['greetings.txt']  # changed
+	options = {
+	'memory':'1g',
+	'cores':1,
+	'walltime':'00:00:10',
+	}
+	# Here we need to activate our conda environment (this will differ from user to user!!!!!!)
+	spec = f'''
+        source "/u/home/m/mica20/miniconda3/etc/profile.d/conda.sh"
+        conda activate myproject2
+
+	echo hello world
+	'''
+	print(spec)
+	return inputs, outputs, options, spec
+
+## Submitting your first step
+gwf.target_from_template("Mytarget", first_step())
 ```
 
 This tells gwf that the target will create a file called greeting.txt when it is run. However, the target does not actually create the file yet. Let’s fix that too:
 
 ```{python}
-gwf.target('MyTarget', inputs=[], outputs=['greeting.txt']) << """
-echo hello world > greeting.txt
-"""
+from gwf import Workflow
+
+gwf = Workflow()
+
+def first_step():
+	inputs = []
+	outputs = ['greetings.txt'] # changed
+	options = {
+	'memory':'1g',
+	'cores':1,
+	'walltime':'00:00:10',
+	}
+	# Here we need to activate our conda environment (this will differ from user to user!!!!!!)
+	spec = f'''
+        source "/u/home/m/mica20/miniconda3/etc/profile.d/conda.sh"
+        conda activate myproject2
+
+	echo hello world > greetings.txt
+	'''
+	print(spec)
+	return inputs, outputs, options, spec
+
+## Submitting your first step
+gwf.target_from_template("Mytarget", first_step())
 ```
 There you go! We have now declared a workflow with one target and that target creates the file greeting.txt with the line hello world in it. Now let’s try to run our workflow…
 
@@ -105,9 +158,26 @@ from gwf import Workflow
 
 gwf = Workflow()
 
-gwf.target('MyTarget', inputs=[], outputs=['greeting.txt']) << """
-echo hello world > greeting.txt
-"""
+def first_step():
+	inputs = []
+	outputs = ['greetings.txt'] # changed
+	options = {
+	'memory':'1g',
+	'cores':1,
+	'walltime':'00:00:10',
+	}
+	# Here we need to activate our conda environment (this will differ from user to user!!!!!!)
+	spec = f'''
+        source "/u/home/m/mica20/miniconda3/etc/profile.d/conda.sh"
+        conda activate myproject2
+
+	echo hello world > greetings.txt
+	'''
+	print(spec)
+	return inputs, outputs, options, spec
+
+## Submitting your first step
+gwf.target_from_template("Mytarget", first_step())
 ```
 
 Since we are running this script on the cluster we need to set a backend, to do so we type in the terminal
@@ -121,7 +191,7 @@ Now to run the workflow, we just need to type:
 ```{bash}
 gwf run
 ```
-By default gwf assumes that the the workflow file is called workflow.py and that the workflow is called gwf.
+By default gwf assumes that the the workflow file is called *workflow.py* and that the workflow is called gwf.
 But if you wanna instead call your workflow *something_else.py*, then you can just run with the flag *-f* as:
 
 ```{bash}
@@ -133,7 +203,17 @@ To check the status of your workflow.py you can type the following:
 ```{bash}
 gwf status
 ```
+What do you see?
+I first see:
 
+```{bash}
+Mytarget    submitted     100.00% [0/0/0/1]
+```
+
+And then I see:
+```{bash}
+Mytarget    completed     100.00% [0/0/0/1]
+```
 
 
 if you get any problems with utf8 then type the following on terminal
