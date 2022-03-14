@@ -92,7 +92,7 @@ We have also set some properties about the job:
 - the number of cores
 - the walltime
 
-These specifications will of course change with demand, so you need to bare in mind that.
+These specifications will of course change with demand, so you need to bare that in mind.
 
 The target defined above does not use any files and doesn’t produce any files either. However, it does run a single command (**echo hello world**), but the output of the command is thrown away. Let’s fix that! Change the target definition to this:
 
