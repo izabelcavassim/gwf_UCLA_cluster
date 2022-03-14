@@ -1,5 +1,5 @@
 ---
-title: "Using_gwf_smcpp"
+title: "Using_gwf_hoffman_cluster"
 author: "Maria Izabel Cavassim Alves"
 date: "3/4/2022"
 output: html_document
@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ## GWF
 
 [gwf](https://gwf.app/) is a flexible, pragmatic workflow tool for building and running large, scientific workflows. It runs on Python 3.5+ and is developed at the Bioinformatics Research Centre (BiRC), Aarhus University.
+
+In this tutorial I assume that you have access to [Hoffman2](https://www.hoffman2.idre.ucla.edu/), and that you are already logged in. 
 
 ## Installation of GWF
 The easiest way to install gwf is through conda, if you do not have conda installed yet in the cluster, please look at the document [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) to find the instructions on how to install it. 
