@@ -160,7 +160,7 @@ def first_step():
 ## Submitting your first step
 gwf.target_from_template("Mytarget", first_step())
 ```
-There you go! We have now declared a workflow with one target and that target creates the file greeting.txt with the line hello world in it. Now let’s try to run our workflow…
+There you go! We have now declared a workflow with one target and that target creates the file greetings.txt with the line hello world in it. Now let’s try to run our workflow…
 
 ```{python}
 from gwf import Workflow
