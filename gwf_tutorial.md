@@ -37,6 +37,13 @@ Go to the directory that the gwf folder is placed, in mine is placed in the foll
 ```{bash}
 /u/home/m/mica20/miniconda3/envs/myproject2/lib/python3.9/site-packages/gwf/backends
 ```
+I have miniconda installed in the Hoffman, and it is used as my base environment. 
+
+To find out where your conda base environment is located you can try the following:
+
+```{bash}
+conda info | grep -i 'base environment'
+```
 
 And now in the file *sge.py* replace it with the one added [here](https://github.com/izabelcavassim/gwf_UCLA_cluster/blob/master/sge.py) in this repository.
 
