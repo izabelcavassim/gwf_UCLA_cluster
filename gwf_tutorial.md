@@ -123,7 +123,7 @@ def first_step():
 gwf.target_from_template("Mytarget", first_step())
 ```
 
-This tells gwf that the target will create a file called greeting.txt when it is run. However, the target does not actually create the file yet. Let’s fix that too:
+This tells gwf that the target will create a file called greetings.txt when it is run. However, the target does not actually create the file yet. Let’s fix that too:
 
 ```{python}
 from gwf import Workflow
