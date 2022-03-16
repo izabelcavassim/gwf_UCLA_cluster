@@ -1,8 +1,8 @@
 ---
-title: "Using_gwf_hoffman_cluster"
+title: "Using gwf with the hoffman cluster"
 author: "Maria Izabel Cavassim Alves"
 date: "3/4/2022"
-output: html_document
+output: md_document
 ---
 
 ```{r setup, include=FALSE}
