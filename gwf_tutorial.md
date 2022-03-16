@@ -51,9 +51,9 @@ And now in the file *sge.py* replace it with the one added [here](https://github
 
 So basically now we can run gwf with the settings of the Hoffman cluster. 
 
-To get you started with the utilities of using gwf, I will give a tiny example so to see if it works.
+To get you started with the utilities of using gwf, I will give you a tiny example so to show how gwf works.
 
-I will be somewhat following the tutorial found [here](https://gwf.app/guide/tutorial/#a-minimal-workflow): a minimal workflow to run gwf.
+I will be somewhat following the tutorial found [here](https://gwf.app/guide/tutorial/#a-minimal-workflow): **a minimal workflow to run gwf**.
 
 Let's say we wanna submit a job to the cluster, and the simple task we wanna submit as a job is the creation of a text file with something written in it, such as "hello world".
 
@@ -357,13 +357,8 @@ In order to troubleshoot you jobs under the gwf workflow, you can look at the lo
 To do so you can type:
 
 ```{bash}
-gwf -f workflow_chromosomes.py logs -e Analysis_chrm1 [name of the Target]
+gwf -f workflow_chromosomes.py logs -e Analysis_chrm1
 ```
 
 As you can imagine by now, the sky is the limit in terms of what jobs one can submit with this tool. 
 I hope you use it wisely :)
-
-if you get any problems with utf8 then type the following on terminal
-```{bash}
-export LC_ALL=aa_DJ.utf8
-```
